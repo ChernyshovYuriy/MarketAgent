@@ -1,0 +1,154 @@
+# Canadian Market Opportunity Detection Agent - Configuration
+
+agent:
+  poll_interval_seconds: 120       # 2 minutes
+  max_memory_mb: 900
+  log_level: DEBUG
+
+market:
+  exchanges:
+    - TSX
+    - TSXV
+  optional_exchanges:
+    - NASDAQ
+    - NYSE
+
+liquidity:
+  min_price_cad: 1.00
+  min_avg_daily_volume: 200000
+  max_spread_pct: 3.0
+
+scoring:
+  weights:
+    catalyst:        0.30
+    sentiment:       0.20
+    source:          0.20
+    liquidity:       0.15
+    novelty:         0.10
+    sector_tailwind: 0.05
+  penalties:
+    dilution:        15
+    promotion:       20
+  thresholds:
+    high_priority:   75
+    watch:           60
+
+freshness:
+  decay_half_life_hours: 6
+  max_age_hours: 24
+
+deduplication:
+  cosine_threshold: 0.90
+  url_cache_size: 10000
+
+database:
+  path: storage/market_agent.db
+
+output:
+  alerts_path:    output/alerts.json
+  watchlist_path: output/watchlist.json
+  max_output_items: 50
+
+collectors:
+  yahoo_finance:
+    enabled: true
+    base_url: "https://finance.yahoo.com"
+    rss_url: "https://finance.yahoo.com/rss/headline"
+    timeout_seconds: 10
+    retry_attempts: 3
+    retry_backoff_base: 2
+
+  globenewswire:
+    enabled: true
+    rss_url: "https://www.globenewswire.com/RssFeed/country/Canada"
+    timeout_seconds: 10
+    retry_attempts: 3
+    retry_backoff_base: 2
+
+  prnewswire:
+    enabled: true
+    rss_url: "https://www.prnewswire.com/rss/news-releases-list.rss"
+    timeout_seconds: 10
+    retry_attempts: 3
+    retry_backoff_base: 2
+
+  businesswire:
+    enabled: true
+    rss_url: "https://feed.businesswire.com/rss/home/?rss=G1&rtype=Rtopic&topic=FIN"
+    timeout_seconds: 10
+    retry_attempts: 3
+    retry_backoff_base: 2
+
+  sedar:
+    enabled: true
+    base_url: "https://www.sedarplus.ca"
+    rss_url: "https://www.sedarplus.ca/csa-party/party/document.html"
+    timeout_seconds: 15
+    retry_attempts: 3
+    retry_backoff_base: 2
+
+  bank_of_canada:
+    enabled: true
+    rss_url: "https://www.bankofcanada.ca/feed/"
+    timeout_seconds: 10
+    retry_attempts: 3
+    retry_backoff_base: 2
+
+source_reliability:
+  SEDAR:       1.0
+  Reuters:     0.9
+  Bloomberg:   0.9
+  BusinessWire: 0.8
+  PRNewswire:  0.7
+  GlobeNewswire: 0.75
+  Yahoo:       0.6
+  Unknown:     0.3
+
+# ============================================================
+# Email notifications
+# ============================================================
+email:
+  enabled: false                  # flip to true to activate
+
+  provider: smtp                  # smtp | sendgrid
+
+  from_address: "ca-market-agent@gmail.com"
+  to_addresses:
+    - "you@example.com"           # add more addresses as needed
+
+  notify_labels:                  # which labels trigger an email
+    - HIGH_PRIORITY
+    # - WATCH                     # uncomment to also receive WATCH alerts
+
+  min_score: 75                   # only email if final_score >= this value
+  cooldown_minutes: 60            # don't re-email the same ticker within N minutes
+  batch: true                     # true = one digest per cycle | false = one email per event
+
+  # ---- Gmail (App Password) ----
+  # 1. Enable 2FA on your Google account
+  # 2. Go to: https://myaccount.google.com/apppasswords
+  # 3. Create an App Password and paste it below
+  smtp:
+    host: smtp.gmail.com
+    port: 587
+    username: "ca-market-agent@gmail.com"
+    password: "xxxx xxxx xxxx xxxx"       # Gmail App Password (16 chars, spaces OK)
+
+  # ---- Outlook / Office 365 ----
+  # smtp:
+  #   host: smtp.office365.com
+  #   port: 587
+  #   username: "you@outlook.com"
+  #   password: "your-password"
+
+  # ---- Custom SMTP server ----
+  # smtp:
+  #   host: mail.yourdomain.com
+  #   port: 587
+  #   username: "alerts@yourdomain.com"
+  #   password: "your-password"
+
+  # ---- SendGrid (alternative to SMTP) ----
+  # provider: sendgrid
+  # sendgrid:
+  #   api_key: "SG.xxxxxxxxxxxxxxxxxxxx"

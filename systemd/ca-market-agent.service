@@ -1,0 +1,41 @@
+[Unit]
+Description=Canadian Market Opportunity Detection Agent (single cycle)
+# Wait for network before running
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# ---- Identity ----
+# Change 'ubuntu' to whatever user you run Python under
+User=ubuntu
+Group=ubuntu
+
+# ---- Paths ----
+# Absolute path to the project directory
+WorkingDirectory=/opt/ca_market_agent
+
+# Use the venv Python if you created one, otherwise system Python
+ExecStart=/opt/ca_market_agent/venv/bin/python main.py --once
+
+# ---- Logging ----
+# Redirect stdout/stderr to the systemd journal (view with: journalctl -u ca-market-agent)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ca-market-agent
+
+# ---- Hardening ----
+# Keep the service from touching anything outside the project dir
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/ca_market_agent
+
+# ---- Failure behaviour ----
+# If the script crashes, report it but let the timer retry on the next interval
+# (do NOT use Restart= with oneshot + timer — the timer already handles retries)
+
+[Install]
+# Not needed — the timer activates this service, not a runlevel target
+WantedBy=multi-user.target

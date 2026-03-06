@@ -1,0 +1,5 @@
+.idea
+logs
+output
+__pycache__/
+storage/market_agent.db

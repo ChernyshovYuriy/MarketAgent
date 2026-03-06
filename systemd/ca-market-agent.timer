@@ -1,0 +1,21 @@
+[Unit]
+Description=Run Canadian Market Agent every 30 minutes
+Requires=ca-market-agent.service
+
+[Timer]
+# Fire 1 minute after boot (gives the network time to come up fully)
+OnBootSec=1min
+
+# Then every 30 minutes after the previous run *completes*
+# Use OnCalendar instead if you want wall-clock alignment (e.g. :00 and :30)
+OnUnitActiveSec=30min
+
+# Wall-clock alternative — fires at :00 and :30 of every hour:
+# OnCalendar=*:0/30
+# RandomizedDelaySec=60   # spread load if many agents run at once
+
+# Keep the timer alive across reboots without needing the service enabled
+Persistent=true
+
+[Install]
+WantedBy=timers.target
