@@ -117,24 +117,6 @@ class Database:
     # ------------------------------------------------------------------ #
 
     def upsert_ticker(self, ticker: Dict[str, Any]):
-        sql = """
-        INSERT INTO tickers (ticker, exchange, company_name, aliases, sector,
-                             average_volume, market_cap, last_price,
-                             spread_estimate, updated_at)
-        VALUES (:ticker, :exchange, :company_name, :aliases, :sector,
-                :average_volume, :market_cap, :last_price,
-                :spread_estimate, :updated_at)
-        ON CONFLICT(ticker) DO UPDATE SET
-            exchange        = excluded.exchange,
-            company_name    = excluded.company_name,
-            aliases         = excluded.aliases,
-            sector          = excluded.sector,
-            average_volume  = excluded.average_volume,
-            market_cap      = excluded.market_cap,
-            last_price      = excluded.last_price,
-            spread_estimate = excluded.spread_estimate,
-            updated_at      = excluded.updated_at
-        """
         row = {**ticker}
         row.setdefault("aliases", "[]")
         row.setdefault("sector", None)
@@ -143,10 +125,41 @@ class Database:
         row.setdefault("last_price", 0)
         row.setdefault("spread_estimate", 0)
         row["updated_at"] = datetime.now(timezone.utc).isoformat()
+
         if isinstance(row.get("aliases"), list):
             row["aliases"] = json.dumps(row["aliases"])
+
+        update_sql = """
+        UPDATE tickers
+        SET exchange = :exchange,
+            company_name = :company_name,
+            aliases = :aliases,
+            sector = :sector,
+            average_volume = :average_volume,
+            market_cap = :market_cap,
+            last_price = :last_price,
+            spread_estimate = :spread_estimate,
+            updated_at = :updated_at
+        WHERE ticker = :ticker
+        """
+
+        insert_sql = """
+        INSERT INTO tickers (
+            ticker, exchange, company_name, aliases, sector,
+            average_volume, market_cap, last_price,
+            spread_estimate, updated_at
+        )
+        VALUES (
+            :ticker, :exchange, :company_name, :aliases, :sector,
+            :average_volume, :market_cap, :last_price,
+            :spread_estimate, :updated_at
+        )
+        """
+
         with self._get_conn() as conn:
-            conn.execute(sql, row)
+            cur = conn.execute(update_sql, row)
+            if cur.rowcount == 0:
+                conn.execute(insert_sql, row)
 
     def get_ticker(self, ticker: str) -> Optional[Dict]:
         with self._get_conn() as conn:
