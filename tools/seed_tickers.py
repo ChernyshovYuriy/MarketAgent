@@ -66,6 +66,38 @@ SAMPLE_TICKERS = [
 ]
 
 
+def _normalise_aliases(raw: str, ticker: str) -> str:
+    """
+    Convert whatever the CSV supplies in the 'aliases' column into a
+    valid JSON array string that database.py can store and read back.
+
+    Handles:
+      - empty / missing value  → derive base symbol from ticker
+      - already valid JSON     → use as-is
+      - plain string "RY"      → wrap in a list: ["RY"]
+      - comma-separated "RY,RY.TO" → split and wrap: ["RY", "RY.TO"]
+    """
+    raw = (raw or "").strip()
+
+    if not raw:
+        base = ticker.split(".")[0]
+        return json.dumps([base])
+
+    # Already a JSON array?
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return json.dumps([str(a).strip() for a in parsed if str(a).strip()])
+        # JSON scalar (e.g. "\"RY\"") — wrap it
+        return json.dumps([str(parsed).strip()])
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Plain text — may be comma-separated
+    items = [a.strip() for a in raw.split(",") if a.strip()]
+    return json.dumps(items)
+
+
 def seed_from_sample(db: Database):
     logger.info("Seeding %d sample tickers...", len(SAMPLE_TICKERS))
     for ticker in SAMPLE_TICKERS:
@@ -91,9 +123,12 @@ def seed_from_csv(db: Database, csv_path: str):
                     row[field] = float(row.get(field, 0) or 0)
                 except ValueError:
                     row[field] = 0.0
-            if not row.get("aliases"):
-                base = row["ticker"].split(".")[0]
-                row["aliases"] = json.dumps([base])
+
+            # Always store aliases as a valid JSON array string
+            row["aliases"] = _normalise_aliases(
+                row.get("aliases", ""), row.get("ticker", "")
+            )
+
             db.upsert_ticker(row)
             loaded += 1
     logger.info("Loaded %d tickers from %s", loaded, csv_path)

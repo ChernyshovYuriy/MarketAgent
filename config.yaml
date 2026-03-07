@@ -3,7 +3,7 @@
 agent:
   poll_interval_seconds: 120       # 2 minutes
   max_memory_mb: 900
-  log_level: DEBUG
+  log_level: INFO
 
 market:
   exchanges:
